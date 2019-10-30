@@ -3,12 +3,18 @@ const app = express()
 const port = 4000
 const path = require('path');
 const bodyParser = require('body-parser'); //to use post request
+const cors = require('cors');
+const mongoose = require ('mongoose'); // add for mongoDB (lab8)        (10)
+
+//add the following bellow for (lab8) (10)
+const mongoDB = 'mongodb+srv://admin:admin@cluster0-t58dy.mongodb.net/test?retryWrites=true&w=majority';
+mongoose.connect(mongoDB, {useNewUrlParser:true}); //connect to the database using this parser
 
 //----------------------------------------------------------------------------------------------
 //need to input code below to allow cross talk : CORS
 //must run command (npm install cors)
 //----------------------------------------------------------------------------------------------
-const cors = require('cors');
+
 app.use(cors());
 app.use(function(req, res, next) {
 res.header("Access-Control-Allow-Origin", "*");
@@ -29,7 +35,22 @@ app.use(bodyParser.urlencoded({ extended:false }))
 //parse application/json
 app.use(bodyParser.json())
 //---------------------------------------------------------------------------------------------------
+//(10) creating a FOLDER for your DATABASE to store into
+    //AKA WRITING DATA
 
+const Schema = mongoose.Schema;
+
+const movieSchema = new Schema({
+    title:String,
+    year:String,
+    poster:String
+})
+
+const MovieModel = mongoose.model('movie',movieSchema) //creates a folder called movie that links movieschema/documents to it
+
+
+
+//---------------------------------------------------------------------------------------------------
 //(1)SENDS BACK A BASIC HELLO WORLD RESPONSE
 app.get('/', (req, res) => res.send('Hello World!'))
 //---------------------------------------------------------------------------------------------------
@@ -47,11 +68,38 @@ app.get('/hello/:name', (req, res) => {
 app.get('/test', (req, res) => {
     res.sendFile(path.join(__dirname + '/index.html'))
 })
+//---------------------------------------------------------------------------------------------------
+//(10)
+// http://localhost:4000/api/movies/5db96045f733220998a9b621  <-- the long code got from the mongoDB site which is from  the created movie from client in collections
+app.get('/api/movies/:id', (req,res) => {
+
+console.log(req.params.id);
+
+MovieModel.findById(req.params.id,(error,data)=>{
+    res.json(data);
+
+    })
+})
+
+
+
 
 //---------------------------------------------------------------------------------------------------
-//(5)SENDS BACK A RESPONSE OF MOVIE JSON DATA
+//(10)
+//READING FROM MONGODB
+
 app.get('/api/movies', (req, res) => {
-    const myMovies = 
+
+    MovieModel.find((error,data)=>{
+
+        res.json({movies:data}) //now calling the data to have an array called movies in json 
+    })
+
+
+
+})
+   /*//(5)SENDS BACK A RESPONSE OF MOVIE JSON DATA 
+        const myMovies = 
         [
         {
         "Title":"Avengers: Infinity War",
@@ -66,10 +114,12 @@ app.get('/api/movies', (req, res) => {
         ]
 
         res.status(200).json({movies:myMovies,message:'operation completed sucessfully!'})
-            
-        })
+          */  
+        
 //---------------------------------------------------------------------------------------------------
 //(9) sending data up from the create.js page to the server.
+//(10) need this for code below to create up to mongoDB
+//AKA WRITING DATA
 
 app.post('/api/movies',(req,res) => {
     console.log('Movie Recieved');
@@ -77,9 +127,15 @@ app.post('/api/movies',(req,res) => {
     console.log(req.body.title);
     console.log(req.body.year);
     console.log(req.body.poster);
+
+
+//(10) allows the data to be created which gets passed up to mongoDB
+MovieModel.create({
+    title: req.body.title,
+    year: req.body.year,
+    poster: req.body.poster,
+});
 })
-
-
 //---------------------------------------------------------------------------------------------------
 //(6)RETURNING THE URL IN THE PAGE AND THE NAME INPUTTED TO FORUM USING (GET REQUEST!)
     app.get('/name', (req, res) => {
